@@ -7,10 +7,10 @@
   --border: #e2e4ee;
   --text: #191b28;
   --muted: #666a80;
-  --primary: #5b5bd6;
-  --primary-hover: #4a4ac4;
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
   --primary-fg: #ffffff;
-  --ring: rgba(91, 91, 214, 0.4);
+  --ring: rgba(13, 148, 136, 0.4);
   --good: #12915a;
   --good-bg: #e6f6ee;
   --good-border: #a6e0c0;
@@ -18,11 +18,11 @@
   --bad-bg: #fdeceb;
   --bad-border: #f4bcba;
 
-  --accent-0: #6d5bf0;
-  --accent-1: #1aa5bd;
-  --accent-2: #e0902a;
-  --accent-3: #e0567f;
-  --accent-4: #23a97f;
+  --accent-0: #0d9488;
+  --accent-1: #0ea5e9;
+  --accent-2: #d97706;
+  --accent-3: #e11d48;
+  --accent-4: #7c3aed;
 
   --radius: 16px;
   --shadow: 0 1px 2px rgba(20, 22, 40, 0.04), 0 8px 24px rgba(20, 22, 40, 0.06);
@@ -36,10 +36,15 @@
     --border: #282b3a;
     --text: #eceef6;
     --muted: #9a9db4;
-    --primary: #8785f5;
-    --primary-hover: #9a98f7;
-    --primary-fg: #0b0c11;
-    --ring: rgba(135, 133, 245, 0.45);
+    --primary: #2dd4bf;
+    --primary-hover: #5eead4;
+    --primary-fg: #06201c;
+    --ring: rgba(45, 212, 191, 0.45);
+    --accent-0: #2dd4bf;
+    --accent-1: #38bdf8;
+    --accent-2: #f59e0b;
+    --accent-3: #fb7185;
+    --accent-4: #a78bfa;
     --good: #4ecf94;
     --good-bg: #10261c;
     --good-border: #235e43;
@@ -63,7 +68,7 @@
   --color-good: var(--good);
   --color-bad: var(--bad);
   --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -79,8 +84,19 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--font-fraunces), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* subtle dotted texture that echoes Memorang's hero, faded so it never competes */
+.dotted {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--primary) 34%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, #000 0%, transparent 70%);
 }
 
 /* ---- reusable pieces ---- */

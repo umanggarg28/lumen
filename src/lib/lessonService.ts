@@ -1,10 +1,13 @@
 import { randomUUID } from 'crypto';
 import { ready } from './db';
+import { chat } from './llm';
+import { tutorPrompt } from './prompts';
 import { startPlanning, approvePlan } from '../agent/graph';
 import { generateValidMCQ } from '../agent/nodes/mcq';
 import { transition } from '../domain/lessonMachine';
 import { toPublicMCQ } from '../domain/mcq';
 import { grade } from '../domain/grading';
+import { isHintSafe } from '../domain/hintGuard';
 import { summarize } from '../domain/summary';
 import { initialState } from '../domain/types';
 import type { LessonState, LessonPlan, Feedback } from '../domain/types';
@@ -121,4 +124,44 @@ export async function getLessonView(lessonId: string): Promise<LessonView | null
   const store = await ready();
   const state = await store.getLesson(lessonId);
   return state ? view(lessonId, state) : null;
+}
+
+const REFUSAL =
+  "I'd rather not point straight at the answer — that part's yours to reason out. Look back at the " +
+  "section this question comes from and think about what each step actually does, then give it a go.";
+
+/**
+ * The tutor: answers "tell me more / hint" questions grounded in the PDF, but the
+ * reply is checked against the answer key before it's returned. If the model ever
+ * lets the correct answer slip through, we refuse rather than reveal.
+ */
+export async function tutorReply(lessonId: string, message: string): Promise<string> {
+  const store = await ready();
+  const state = await store.getLesson(lessonId);
+  if (!state) throw new Error('lesson not found');
+
+  const objective = state.plan?.objectives[state.currentObjectiveIndex];
+  const chunks = state.documentId ? await store.getChunks(state.documentId) : [];
+  const relevant = objective
+    ? (() => {
+        const refs = new Set(objective.sourceRefs.map((r) => r.chunkId));
+        const hit = chunks.filter((c) => refs.has(c.chunkId));
+        return hit.length > 0 ? hit : chunks;
+      })()
+    : chunks;
+
+  // The text of the correct choice — used only to guard the reply, never sent out.
+  let correctText = '';
+  if (state.currentQuestion) {
+    const key = await store.getAnswerKey(state.currentQuestion.id);
+    const correct = state.currentQuestion.choices.find((c) => c.id === key?.correctChoiceId);
+    correctText = correct?.text ?? '';
+  }
+
+  const { system, user } = tutorPrompt(objective, relevant, state.currentQuestion, message);
+  const reply = await chat(system, user);
+
+  // Deterministic backstop: if the answer leaked into the reply, refuse.
+  if (correctText && !isHintSafe(reply, correctText)) return REFUSAL;
+  return reply.trim() || REFUSAL;
 }

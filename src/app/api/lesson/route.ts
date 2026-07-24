@@ -6,6 +6,7 @@ import {
   retryQuestion,
   continueLesson,
   getLessonView,
+  tutorReply,
 } from '../../../lib/lessonService';
 
 export const runtime = 'nodejs';
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(await retryQuestion(body.lessonId));
       case 'continue':
         return NextResponse.json(await continueLesson(body.lessonId));
+      case 'tutor':
+        return NextResponse.json({ reply: await tutorReply(body.lessonId, body.message) });
       default:
         return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
     }

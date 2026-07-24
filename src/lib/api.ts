@@ -36,6 +36,17 @@ export const answer = (lessonId: string, selectedChoiceId: string) =>
 export const retry = (lessonId: string) => action({ action: 'retry', lessonId });
 export const advance = (lessonId: string) => action({ action: 'continue', lessonId });
 
+export async function askTutor(lessonId: string, message: string): Promise<string> {
+  const data = await json<{ reply: string }>(
+    await fetch('/api/lesson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'tutor', lessonId, message }),
+    }),
+  );
+  return data.reply;
+}
+
 export async function resumeLesson(lessonId: string): Promise<LessonView | null> {
   const res = await fetch(`/api/lesson?lessonId=${encodeURIComponent(lessonId)}`);
   if (res.status === 404) return null;

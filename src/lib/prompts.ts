@@ -1,5 +1,5 @@
 import type { Chunk } from './chunking';
-import type { Objective } from '../domain/types';
+import type { Objective, PublicMCQ } from '../domain/types';
 
 function renderChunks(chunks: Chunk[]): string {
   return chunks.map((c) => `[chunkId=${c.chunkId} page=${c.page}]\n${c.text}`).join('\n\n');
@@ -36,5 +36,33 @@ export function mcqPrompt(objective: Objective, chunks: Chunk[]): { system: stri
     '  "explanation": string, "hints": [string], "sourceRefs": [ { "page": number, "chunkId": string, "excerpt": string } ] }',
   ].join(' ');
   const user = `OBJECTIVE: ${objective.title} (difficulty: ${objective.difficulty})\n\nSOURCE MATERIAL:\n\n${renderChunks(material)}`;
+  return { system, user };
+}
+
+/** Answer a learner's "learn more / hint" question without revealing the answer. */
+export function tutorPrompt(
+  objective: Objective | undefined,
+  chunks: Chunk[],
+  question: PublicMCQ | null,
+  message: string,
+): { system: string; user: string } {
+  const system = [
+    'You are a patient study tutor helping a learner understand a topic from their own document.',
+    'Use ONLY the SOURCE MATERIAL — no outside facts. Explain the concept, offer analogies, and answer',
+    '"tell me more" questions in 2-4 concise sentences.',
+    'STRICT RULES: a multiple-choice question is currently open. You must NOT state or hint which option is',
+    'correct, must NOT tell the learner which choice to select, and must NOT evaluate or rank any specific',
+    'option (if asked "is C right?", politely decline and redirect). Teach the underlying idea and ask a',
+    'guiding question instead, then encourage them to answer it themselves.',
+  ].join(' ');
+  const user = [
+    objective ? `CURRENT OBJECTIVE: ${objective.title}` : '',
+    question ? `OPEN QUESTION (do not reveal its answer): ${question.question}` : '',
+    '',
+    'SOURCE MATERIAL:',
+    renderChunks(chunks),
+    '',
+    `LEARNER ASKS: ${message}`,
+  ].join('\n');
   return { system, user };
 }

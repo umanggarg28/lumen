@@ -50,3 +50,30 @@ export async function structured<T>(
   }
   return schema.parse(parsed);
 }
+
+/** Plain-text completion, used for the conversational tutor. */
+export async function chat(
+  system: string,
+  user: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY is not set');
+
+  const res = await fetchImpl(`${BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.4,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`LLM request failed (${res.status}): ${await res.text()}`);
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  return data.choices?.[0]?.message?.content ?? '';
+}

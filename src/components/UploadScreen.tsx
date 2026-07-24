@@ -38,13 +38,14 @@ export function UploadScreen({ onStart, starting }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-6 py-16 animate-fade-up">
+    <div className="relative isolate mx-auto w-full max-w-2xl px-6 py-16 animate-fade-up">
+      <div className="dotted pointer-events-none absolute inset-x-[-40vw] top-0 -z-10 h-[460px]" aria-hidden />
       <div className="text-center">
         <span className="chip" style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}>
           Guided learning from your own material
         </span>
-        <h1 className="mt-5 text-4xl sm:text-5xl font-bold leading-tight text-balance">
-          Turn any PDF into a lesson you actually finish.
+        <h1 className="mt-5 text-4xl sm:text-5xl font-bold leading-[1.08] text-balance">
+          Turn any PDF into a <span style={{ color: 'var(--primary)' }}>lesson</span> you actually finish.
         </h1>
         <p className="mt-4 text-lg text-muted max-w-xl mx-auto">
           Lumen reads your document, proposes a learning path you approve, then quizzes you on it —

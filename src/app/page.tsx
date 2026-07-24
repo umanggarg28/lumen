@@ -8,7 +8,10 @@ import { UploadScreen } from '../components/UploadScreen';
 import { PlanReview } from '../components/PlanReview';
 import { QuizCard } from '../components/QuizCard';
 import { ResultsDashboard } from '../components/ResultsDashboard';
+import { TutorPanel } from '../components/TutorPanel';
 import { Spinner } from '../components/Spinner';
+
+const QUIZ_PHASES = ['preparing_question', 'awaiting_answer', 'showing_feedback'];
 
 const KEY = 'lumen.lessonId';
 
@@ -28,7 +31,7 @@ export default function Home() {
     api
       .resumeLesson(id)
       .then((v) => {
-        if (v && v.phase !== 'completed') setView(v);
+        if (v) setView(v);
         else localStorage.removeItem(KEY);
       })
       .catch(() => localStorage.removeItem(KEY))
@@ -97,7 +100,7 @@ export default function Home() {
             <span className="flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold" style={{ background: 'var(--primary)', color: 'var(--primary-fg)' }}>
               L
             </span>
-            <span className="font-semibold tracking-tight" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            <span className="text-lg font-semibold tracking-tight" style={{ fontFamily: 'var(--font-fraunces)' }}>
               Lumen
             </span>
           </button>
@@ -110,6 +113,8 @@ export default function Home() {
       </header>
 
       <main className="flex-1">{body()}</main>
+
+      {view && QUIZ_PHASES.includes(view.phase) && <TutorPanel lessonId={view.lessonId} />}
 
       {error && (
         <div
