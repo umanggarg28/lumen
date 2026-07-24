@@ -24,6 +24,15 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
+      <head>
+        {/* Apply a saved theme before paint to avoid a flash of the wrong palette. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('lumen.theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

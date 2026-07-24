@@ -9,6 +9,7 @@ import { PlanReview } from '../components/PlanReview';
 import { QuizCard } from '../components/QuizCard';
 import { ResultsDashboard } from '../components/ResultsDashboard';
 import { TutorPanel } from '../components/TutorPanel';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Spinner } from '../components/Spinner';
 
 const QUIZ_PHASES = ['preparing_question', 'awaiting_answer', 'showing_feedback'];
@@ -104,11 +105,14 @@ export default function Home() {
               Lumen
             </span>
           </button>
-          {view && view.phase !== 'completed' && (
-            <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={restart}>
-              New lesson
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {view && view.phase !== 'completed' && (
+              <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={restart}>
+                New lesson
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
