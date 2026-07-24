@@ -164,6 +164,17 @@ h1, h2, h3 {
   border-radius: 999px;
 }
 
+.theme-toggle {
+  color: var(--muted);
+  border-color: var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
 :focus-visible {
   outline: 3px solid var(--ring);
   outline-offset: 2px;
