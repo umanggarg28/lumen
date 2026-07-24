@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lesson
+      POSTGRES_PASSWORD: lesson
+      POSTGRES_DB: lesson
+    ports:
+      - '5432:5432'
+    volumes:
+      - lesson_pgdata:/var/lib/postgresql/data
+
+volumes:
+  lesson_pgdata:
