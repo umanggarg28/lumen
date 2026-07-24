@@ -5,21 +5,12 @@ import { generateValidMCQ } from '../agent/nodes/mcq';
 import { transition } from '../domain/lessonMachine';
 import { toPublicMCQ } from '../domain/mcq';
 import { grade } from '../domain/grading';
-import { summarize, type LessonSummary } from '../domain/summary';
+import { summarize } from '../domain/summary';
 import { initialState } from '../domain/types';
-import type { LessonState, LessonPlan, PublicMCQ, Feedback, ObjectiveProgress } from '../domain/types';
+import type { LessonState, LessonPlan, Feedback } from '../domain/types';
+import type { LessonView } from '../domain/view';
 
-/** Everything the client needs to render — and nothing it shouldn't see. */
-export interface LessonView {
-  lessonId: string;
-  phase: LessonState['phase'];
-  plan: LessonPlan | null;
-  currentObjectiveIndex: number;
-  currentQuestion: PublicMCQ | null;
-  feedback: Feedback | null;
-  progress: ObjectiveProgress[];
-  summary: (LessonSummary & { reviewTitles: string[] }) | null;
-}
+export type { LessonView };
 
 function view(lessonId: string, state: LessonState): LessonView {
   let summary: LessonView['summary'] = null;

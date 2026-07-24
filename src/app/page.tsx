@@ -1,65 +1,128 @@
-import Image from "next/image";
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import type { LessonView } from '../domain/view';
+import type { LessonPlan } from '../domain/types';
+import * as api from '../lib/api';
+import { UploadScreen } from '../components/UploadScreen';
+import { PlanReview } from '../components/PlanReview';
+import { QuizCard } from '../components/QuizCard';
+import { ResultsDashboard } from '../components/ResultsDashboard';
+import { Spinner } from '../components/Spinner';
+
+const KEY = 'lumen.lessonId';
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+  const [view, setView] = useState<LessonView | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resuming, setResuming] = useState(true);
+
+  // Resume an in-progress lesson after a refresh.
+  useEffect(() => {
+    const id = localStorage.getItem(KEY);
+    if (!id) {
+      setResuming(false);
+      return;
+    }
+    api
+      .resumeLesson(id)
+      .then((v) => {
+        if (v && v.phase !== 'completed') setView(v);
+        else localStorage.removeItem(KEY);
+      })
+      .catch(() => localStorage.removeItem(KEY))
+      .finally(() => setResuming(false));
+  }, []);
+
+  const run = useCallback(async (fn: () => Promise<LessonView>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const v = await fn();
+      setView(v);
+      localStorage.setItem(KEY, v.lessonId);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const restart = () => {
+    localStorage.removeItem(KEY);
+    setView(null);
+    setError(null);
+  };
+
+  function body() {
+    if (resuming) {
+      return (
+        <div className="flex items-center justify-center py-32">
+          <Spinner label="Picking up where you left off…" />
+        </div>
+      );
+    }
+    if (!view) {
+      return <UploadScreen onStart={(doc) => run(() => api.startLesson(doc))} starting={busy} />;
+    }
+    if (view.phase === 'awaiting_plan_approval') {
+      return (
+        <PlanReview
+          view={view}
+          busy={busy}
+          onApprove={(edited?: LessonPlan) => run(() => api.approvePlan(view.lessonId, edited))}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      );
+    }
+    if (view.phase === 'completed') {
+      return <ResultsDashboard view={view} onRestart={restart} />;
+    }
+    return (
+      <QuizCard
+        view={view}
+        busy={busy}
+        onAnswer={(choice) => run(() => api.answer(view.lessonId, choice))}
+        onRetry={() => run(() => api.retry(view.lessonId))}
+        onContinue={() => run(() => api.advance(view.lessonId))}
+      />
+    );
+  }
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <header className="sticky top-0 z-10 border-b" style={{ background: 'color-mix(in srgb, var(--bg) 82%, transparent)', backdropFilter: 'blur(8px)' }}>
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-3.5">
+          <button onClick={restart} className="flex items-center gap-2" aria-label="Lumen home">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold" style={{ background: 'var(--primary)', color: 'var(--primary-fg)' }}>
+              L
+            </span>
+            <span className="font-semibold tracking-tight" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+              Lumen
+            </span>
+          </button>
+          {view && view.phase !== 'completed' && (
+            <button className="btn btn-ghost px-3 py-1.5 text-sm" onClick={restart}>
+              New lesson
+            </button>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      <main className="flex-1">{body()}</main>
+
+      {error && (
+        <div
+          className="fixed inset-x-0 bottom-6 mx-auto w-fit max-w-[90%] rounded-xl border px-4 py-3 text-sm shadow-lg animate-fade-up"
+          style={{ background: 'var(--bad-bg)', borderColor: 'var(--bad-border)', color: 'var(--bad)' }}
+          role="alert"
+        >
+          {error}
+          <button className="ml-3 font-semibold underline" onClick={() => setError(null)}>
+            dismiss
+          </button>
         </div>
-      </main>
+      )}
     </div>
   );
 }
