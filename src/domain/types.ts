@@ -90,6 +90,7 @@ export interface ObjectiveProgress {
 
 /** The compact lesson state — no PDF text, no answer key, no chain-of-thought. */
 export interface LessonState {
+  documentId: string | null;
   phase: Phase;
   plan: LessonPlan | null;
   currentObjectiveIndex: number;
@@ -113,6 +114,7 @@ export type LessonEvent =
 
 /** The starting state for a fresh lesson. */
 export const initialState: LessonState = {
+  documentId: null,
   phase: 'planning',
   plan: null,
   currentObjectiveIndex: 0,
