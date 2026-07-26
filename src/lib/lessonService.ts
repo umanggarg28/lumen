@@ -71,11 +71,18 @@ export async function approveLessonPlan(lessonId: string, editedPlan?: LessonPla
 /** Grade a submitted answer and return feedback (never the answer). */
 export async function submitAnswer(lessonId: string, selectedChoiceId: string): Promise<LessonView> {
   const store = await ready();
-  const state = await store.getLesson(lessonId);
+  let state = await store.getLesson(lessonId);
   if (!state || !state.currentQuestion) throw new Error('no active question');
+  const question = state.currentQuestion; // unchanged by RETRY; keeps its non-null type
 
-  const objectiveId = state.currentQuestion.objectiveId;
-  const key = await store.getAnswerKey(state.currentQuestion.id);
+  // Let the learner re-answer directly after a wrong attempt — no explicit "try again"
+  // step. The state machine already models this; we just trigger RETRY for them.
+  if (state.phase === 'showing_feedback' && state.feedback?.status === 'incorrect') {
+    state = transition(state, { type: 'RETRY' });
+  }
+
+  const objectiveId = question.objectiveId;
+  const key = await store.getAnswerKey(question.id);
   if (!key) throw new Error('answer key missing');
 
   const correct = grade(key, selectedChoiceId);

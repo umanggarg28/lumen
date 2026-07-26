@@ -87,7 +87,6 @@ export default function Home() {
         view={view}
         busy={busy}
         onAnswer={(choice) => run(() => api.answer(view.lessonId, choice))}
-        onRetry={() => run(() => api.retry(view.lessonId))}
         onContinue={() => run(() => api.advance(view.lessonId))}
       />
     );

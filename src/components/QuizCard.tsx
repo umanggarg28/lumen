@@ -8,21 +8,23 @@ import { Spinner } from './Spinner';
 interface Props {
   view: LessonView;
   onAnswer: (choiceId: string) => void;
-  onRetry: () => void;
   onContinue: () => void;
   busy: boolean;
 }
 
-export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
+export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
   const q = view.currentQuestion;
   const [selected, setSelected] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<string | null>(null); // the choice currently graded
   const showingFeedback = view.phase === 'showing_feedback';
   const correct = view.feedback?.status === 'correct';
+  const locked = showingFeedback && correct; // only lock the question once it's answered right
 
-  // Reset the selection whenever a new question arrives (or on retry clearing feedback).
+  // Fresh question -> clear everything.
   useEffect(() => {
-    if (!showingFeedback) setSelected(null);
-  }, [q?.id, showingFeedback]);
+    setSelected(null);
+    setSubmitted(null);
+  }, [q?.id]);
 
   const objectives = view.plan?.objectives ?? [];
 
@@ -34,16 +36,32 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
     );
   }
 
+  function pick(choiceId: string) {
+    if (locked || busy) return;
+    setSelected(choiceId);
+  }
+
+  function submit() {
+    if (!selected || busy) return;
+    setSubmitted(selected);
+    onAnswer(selected);
+  }
+
   function choiceStyle(choiceId: string): React.CSSProperties {
-    const isSel = choiceId === selected;
-    if (showingFeedback && isSel) {
-      return correct
-        ? { borderColor: 'var(--good)', background: 'var(--good-bg)' }
-        : { borderColor: 'var(--bad)', background: 'var(--bad-bg)' };
+    if (showingFeedback && correct && choiceId === submitted) {
+      return { borderColor: 'var(--good)', background: 'var(--good-bg)' };
     }
-    if (isSel) return { borderColor: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)' };
+    if (showingFeedback && !correct && choiceId === submitted) {
+      return { borderColor: 'var(--bad)', background: 'var(--bad-bg)' }; // wrong pick stays marked
+    }
+    if (choiceId === selected) {
+      return { borderColor: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)' };
+    }
     return {};
   }
+
+  // Can submit when there's a selection that hasn't already just been graded.
+  const canSubmit = !!selected && !locked && selected !== submitted && !busy;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -56,10 +74,7 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
             <div
               key={o.id}
               className="h-1.5 flex-1 rounded-full transition"
-              style={{
-                background: done || current ? accentFor(i) : 'var(--surface-2)',
-                opacity: done ? 1 : current ? 0.9 : 1,
-              }}
+              style={{ background: done || current ? accentFor(i) : 'var(--surface-2)' }}
             />
           );
         })}
@@ -71,7 +86,7 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
       </p>
 
       <div
-        key={q.id + String(showingFeedback && !correct)}
+        key={`${q.id}-${submitted}-${String(showingFeedback && !correct)}`}
         className={`card mt-3 p-6 sm:p-8 ${showingFeedback && !correct ? 'animate-shake' : 'animate-fade-up'}`}
       >
         <h2 className="text-xl font-semibold leading-snug">{q.question}</h2>
@@ -84,8 +99,8 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
                 key={c.id}
                 role="radio"
                 aria-checked={isSel}
-                disabled={showingFeedback || busy}
-                onClick={() => setSelected(c.id)}
+                disabled={locked || busy}
+                onClick={() => pick(c.id)}
                 className="flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition disabled:cursor-default"
                 style={choiceStyle(c.id)}
               >
@@ -111,7 +126,7 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
             }}
           >
             <p className="font-semibold" style={{ color: correct ? 'var(--good)' : 'var(--bad)' }}>
-              {correct ? '✓ Correct' : '✕ Not quite — try again'}
+              {correct ? '✓ Correct' : '✕ Not quite — pick another and try again'}
             </p>
             <p className="mt-1 text-sm" style={{ color: 'var(--text)' }}>
               {correct ? view.feedback.explanation : view.feedback.hint}
@@ -121,19 +136,13 @@ export function QuizCard({ view, onAnswer, onRetry, onContinue, busy }: Props) {
 
         {/* actions */}
         <div className="mt-6 flex flex-wrap gap-3">
-          {!showingFeedback && (
-            <button className="btn btn-primary" disabled={!selected || busy} onClick={() => selected && onAnswer(selected)}>
-              {busy ? <Spinner label="Checking…" /> : 'Submit answer'}
-            </button>
-          )}
-          {showingFeedback && correct && (
+          {locked ? (
             <button className="btn btn-primary" disabled={busy} onClick={onContinue}>
               {busy ? <Spinner label="Loading…" /> : 'Continue →'}
             </button>
-          )}
-          {showingFeedback && !correct && (
-            <button className="btn btn-primary" disabled={busy} onClick={onRetry}>
-              Try again
+          ) : (
+            <button className="btn btn-primary" disabled={!canSubmit} onClick={submit}>
+              {busy ? <Spinner label="Checking…" /> : 'Submit answer'}
             </button>
           )}
         </div>
