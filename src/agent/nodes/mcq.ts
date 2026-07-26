@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { structured } from '../../lib/llm';
 import { mcqPrompt, faithfulnessPrompt } from '../../lib/prompts';
+import { recordGate } from '../../lib/metrics';
 import { isHintSafe } from '../../domain/hintGuard';
 import type { Chunk } from '../../lib/chunking';
 import type { Objective, FullMCQ } from '../../domain/types';
@@ -103,17 +104,22 @@ export async function generateValidMCQ(
 
     const { ok, issues } = validateMCQ(mcq); // gate 1: well-formed
     if (!ok) {
+      recordGate({ kind: 'structural_reject', objectiveId: objective.id, attempt, detail: issues.join('; ') });
       lastIssues = issues;
       continue;
     }
 
     const faith = await verify(mcq, chunks); // gate 2: actually supported by the source
     if (!faith.faithful) {
+      // This question passed structural checks — the old pipeline would have served it.
+      recordGate({ kind: 'faithfulness_reject', objectiveId: objective.id, attempt, detail: faith.reason });
       lastIssues = [`unfaithful: ${faith.reason}`];
       continue;
     }
 
+    recordGate({ kind: 'served', objectiveId: objective.id, attempts: attempt });
     return mcq;
   }
+  recordGate({ kind: 'failed', objectiveId: objective.id, attempts: maxAttempts });
   throw new Error(`Could not generate a valid MCQ after ${maxAttempts} attempts: ${lastIssues.join('; ')}`);
 }
