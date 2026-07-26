@@ -47,8 +47,12 @@ A few deliberate design decisions:
   network response or in page state.
 - **The model proposes, code decides.** The LLM writes the objectives and questions; plain functions own the
   control flow, the grading, and the pass/fail of each generated question.
-- **Generated questions are self-checked.** Every MCQ passes a validator (the correct choice is real, choices
-  are unique, an explanation exists, and no hint leaks the answer) and is regenerated if it fails.
+- **Generated questions are self-checked, in two layers.** First a structural validator (the correct choice is
+  real, choices are unique, an explanation exists, no hint leaks the answer). Then a second, independent LLM
+  pass — a *faithfulness check* — that judges whether the proposed correct answer is actually supported by the
+  cited source, and that no other choice is equally defensible. A question is regenerated if either gate fails.
+  (The judge is itself an LLM, so this lowers the risk of a confident-but-wrong answer rather than eliminating
+  it; higher-stakes use would add human review.)
 - **The tutor is guarded.** Its replies are grounded in the PDF and checked against the answer key before they
   are sent — if the answer ever slips through, Lumen refuses instead of revealing it.
 - **Questions are grounded.** Objectives and questions cite the pages they come from, so the quiz reflects the

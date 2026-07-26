@@ -1,5 +1,5 @@
 import type { Chunk } from './chunking';
-import type { Objective, PublicMCQ } from '../domain/types';
+import type { Objective, PublicMCQ, FullMCQ } from '../domain/types';
 
 function renderChunks(chunks: Chunk[]): string {
   return chunks.map((c) => `[chunkId=${c.chunkId} page=${c.page}]\n${c.text}`).join('\n\n');
@@ -36,6 +36,38 @@ export function mcqPrompt(objective: Objective, chunks: Chunk[]): { system: stri
     '  "explanation": string, "hints": [string], "sourceRefs": [ { "page": number, "chunkId": string, "excerpt": string } ] }',
   ].join(' ');
   const user = `OBJECTIVE: ${objective.title} (difficulty: ${objective.difficulty})\n\nSOURCE MATERIAL:\n\n${renderChunks(material)}`;
+  return { system, user };
+}
+
+/**
+ * Fact-check a generated MCQ against its cited source — a second, independent LLM
+ * pass ("LLM-as-judge") that verifies the proposed correct answer is actually
+ * supported, and that no other choice is equally defensible.
+ */
+export function faithfulnessPrompt(
+  mcq: FullMCQ,
+  correctText: string,
+  chunks: Chunk[],
+): { system: string; user: string } {
+  const referenced = new Set(mcq.answerKey.sourceRefs.map((r) => r.chunkId));
+  const relevant = chunks.filter((c) => referenced.has(c.chunkId));
+  const material = relevant.length > 0 ? relevant : chunks;
+  const system = [
+    'You are a strict fact-checker for quiz questions. Using ONLY the SOURCE MATERIAL, decide whether the',
+    'PROPOSED CORRECT ANSWER is clearly and unambiguously supported by the source, AND that no other listed',
+    'choice is equally defensible. If the source does not clearly support it, or another choice is just as',
+    'valid, it is NOT faithful. Do not use outside knowledge.',
+    'Return ONLY JSON of the form: { "faithful": boolean, "reason": string }',
+  ].join(' ');
+  const choices = mcq.choices.map((c) => `${c.id}) ${c.text}`).join('\n');
+  const user = [
+    `QUESTION: ${mcq.question}`,
+    `CHOICES:\n${choices}`,
+    `PROPOSED CORRECT ANSWER: ${correctText}`,
+    '',
+    'SOURCE MATERIAL:',
+    renderChunks(material),
+  ].join('\n');
   return { system, user };
 }
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { structured } from '../../lib/llm';
-import { mcqPrompt } from '../../lib/prompts';
+import { mcqPrompt, faithfulnessPrompt } from '../../lib/prompts';
 import { isHintSafe } from '../../domain/hintGuard';
 import type { Chunk } from '../../lib/chunking';
 import type { Objective, FullMCQ } from '../../domain/types';
@@ -56,25 +56,64 @@ export function validateMCQ(mcq: FullMCQ): { ok: boolean; issues: string[] } {
   return { ok: issues.length === 0, issues };
 }
 
+const faithfulnessSchema = z.object({ faithful: z.boolean(), reason: z.string() });
+
+/** The result of fact-checking a question against its source. */
+export type Faithfulness = { faithful: boolean; reason: string };
+
+/** A pluggable fact-checker (real one calls the LLM; tests pass a stub). */
+export type Verifier = (mcq: FullMCQ, chunks: Chunk[]) => Promise<Faithfulness>;
+
 /**
- * Generate an MCQ and re-generate if it fails validation, up to `maxAttempts`.
- * This is the "self-evaluation framework" in miniature: the model proposes, code
- * checks, and low-quality output is rejected rather than served.
+ * Second, independent LLM pass: given the question, the proposed correct answer,
+ * and the cited source, judge whether the answer is actually supported. Structural
+ * checks catch malformed questions; this catches confident-but-wrong ones.
+ * (Caveat: the judge is also an LLM — this reduces the risk of a bad answer, it
+ * doesn't eliminate it.)
+ */
+export async function checkFaithfulness(
+  mcq: FullMCQ,
+  chunks: Chunk[],
+  structuredImpl = structured,
+): Promise<Faithfulness> {
+  const correct = mcq.choices.find((c) => c.id === mcq.answerKey.correctChoiceId);
+  const { system, user } = faithfulnessPrompt(mcq, correct?.text ?? '', chunks);
+  return structuredImpl(faithfulnessSchema, system, user);
+}
+
+/**
+ * Generate an MCQ and re-generate until it passes BOTH gates, up to `maxAttempts`:
+ *   1. structural validation (`validateMCQ`) — well-formed?
+ *   2. faithfulness (`verify`) — is the answer actually supported by the source?
+ * This is the "self-evaluation framework": the model proposes, code + a judge check,
+ * and low-quality or unfaithful output is rejected rather than served.
  */
 export async function generateValidMCQ(
   objective: Objective,
   chunks: Chunk[],
   structuredImpl = structured,
   maxAttempts = 2,
+  verify: Verifier = (mcq, c) => checkFaithfulness(mcq, c, structuredImpl),
 ): Promise<FullMCQ> {
   const { system, user } = mcqPrompt(objective, chunks);
   let lastIssues: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const raw = await structuredImpl(mcqSchema, system, user);
     const mcq = assembleMCQ(objective, raw);
-    const { ok, issues } = validateMCQ(mcq);
-    if (ok) return mcq;
-    lastIssues = issues;
+
+    const { ok, issues } = validateMCQ(mcq); // gate 1: well-formed
+    if (!ok) {
+      lastIssues = issues;
+      continue;
+    }
+
+    const faith = await verify(mcq, chunks); // gate 2: actually supported by the source
+    if (!faith.faithful) {
+      lastIssues = [`unfaithful: ${faith.reason}`];
+      continue;
+    }
+
+    return mcq;
   }
   throw new Error(`Could not generate a valid MCQ after ${maxAttempts} attempts: ${lastIssues.join('; ')}`);
 }
