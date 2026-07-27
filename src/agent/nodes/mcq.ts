@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { structured } from '../../lib/llm';
+import { structured, JUDGE_MODEL } from '../../lib/llm';
 import { mcqPrompt, faithfulnessPrompt } from '../../lib/prompts';
 import { recordGate } from '../../lib/metrics';
 import { isHintSafe } from '../../domain/hintGuard';
@@ -79,9 +79,11 @@ export type Verifier = (mcq: FullMCQ, chunks: Chunk[]) => Promise<Faithfulness>;
 
 /**
  * Second, independent LLM pass: given the question, the proposed correct answer,
- * and the cited source, judge whether the answer is actually supported. Structural
- * checks catch malformed questions; this catches confident-but-wrong ones.
- * (Caveat: the judge is also an LLM — this reduces the risk of a bad answer, it
+ * and the cited source, judge whether the answer is actually supported. Runs on a
+ * separate (by default stronger) model than the generator, so it's a genuinely
+ * independent reviewer rather than the same model grading itself. Structural checks
+ * catch malformed questions; this catches confident-but-wrong ones.
+ * (Caveat: the judge is still an LLM — this reduces the risk of a bad answer, it
  * doesn't eliminate it.)
  */
 export async function checkFaithfulness(
@@ -91,7 +93,7 @@ export async function checkFaithfulness(
 ): Promise<Faithfulness> {
   const correct = mcq.choices.find((c) => c.id === mcq.answerKey.correctChoiceId);
   const { system, user } = faithfulnessPrompt(mcq, correct?.text ?? '', chunks);
-  return structuredImpl(faithfulnessSchema, system, user);
+  return structuredImpl(faithfulnessSchema, system, user, JUDGE_MODEL);
 }
 
 /**

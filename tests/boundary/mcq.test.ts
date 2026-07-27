@@ -73,6 +73,15 @@ describe('checkFaithfulness (LLM-as-judge)', () => {
     expect(res.reason).toContain('does not support');
     expect(judge).toHaveBeenCalledOnce();
   });
+
+  it('runs the judge on the configured judge model (independent from the generator)', async () => {
+    const judge = vi.fn().mockResolvedValue({ faithful: true, reason: 'ok' });
+    await checkFaithfulness(assembleMCQ(objective, goodRaw), [], judge);
+    // 4th arg is the model the judge call should use
+    const modelArg = judge.mock.calls[0][3];
+    expect(typeof modelArg).toBe('string');
+    expect(modelArg.length).toBeGreaterThan(0);
+  });
 });
 
 describe('generateValidMCQ', () => {

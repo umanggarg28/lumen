@@ -9,10 +9,19 @@ import type { ZodType } from 'zod';
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1';
 const MODEL = process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini';
 
+/**
+ * Model used for the faithfulness self-check. Defaults to a stronger model than the
+ * generator so the judge is a genuinely independent, more capable reviewer (this
+ * reduces the correlated-error risk of self-checking with the same model). Falls
+ * back to the generation model if not configured.
+ */
+export const JUDGE_MODEL = process.env.OPENROUTER_JUDGE_MODEL ?? MODEL;
+
 export async function structured<T>(
   schema: ZodType<T>,
   system: string,
   user: string,
+  model: string = MODEL,
   fetchImpl: typeof fetch = fetch,
 ): Promise<T> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -25,7 +34,7 @@ export async function structured<T>(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user },
