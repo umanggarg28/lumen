@@ -10,6 +10,7 @@ import { QuizCard } from '../components/QuizCard';
 import { ResultsDashboard } from '../components/ResultsDashboard';
 import { TutorPanel } from '../components/TutorPanel';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { Toast } from '../components/Toast';
 import { Spinner } from '../components/Spinner';
 
 const QUIZ_PHASES = ['preparing_question', 'awaiting_answer', 'showing_feedback'];
@@ -119,18 +120,7 @@ export default function Home() {
 
       {view && QUIZ_PHASES.includes(view.phase) && <TutorPanel lessonId={view.lessonId} />}
 
-      {error && (
-        <div
-          className="fixed inset-x-0 bottom-6 mx-auto w-fit max-w-[90%] rounded-xl border px-4 py-3 text-sm shadow-lg animate-fade-up"
-          style={{ background: 'var(--bad-bg)', borderColor: 'var(--bad-border)', color: 'var(--bad)' }}
-          role="alert"
-        >
-          {error}
-          <button className="ml-3 font-semibold underline" onClick={() => setError(null)}>
-            dismiss
-          </button>
-        </div>
-      )}
+      {error && <Toast message={error} onDismiss={() => setError(null)} />}
     </div>
   );
 }

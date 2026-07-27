@@ -23,6 +23,29 @@ export function chunkPages(pages: Page[], maxLen = 1200): Chunk[] {
 }
 
 /**
+ * Pick a subset of chunks that fits within a character budget, sampled evenly
+ * across the document so page coverage is preserved (not just the first pages).
+ *
+ * The plan step reasons over the whole document, so on a large PDF feeding every
+ * chunk would blow the model's context window. This keeps that input bounded while
+ * still spanning the material. Per-objective question generation is unaffected — it
+ * uses only the chunks a given objective cites.
+ */
+export function selectForBudget(chunks: Chunk[], maxChars: number): Chunk[] {
+  const total = chunks.reduce((n, c) => n + c.text.length, 0);
+  if (total <= maxChars) return chunks;
+
+  const avg = total / chunks.length;
+  const affordable = Math.max(1, Math.floor(maxChars / avg));
+  if (affordable >= chunks.length) return chunks;
+
+  const step = chunks.length / affordable;
+  const out: Chunk[] = [];
+  for (let i = 0; i < affordable; i++) out.push(chunks[Math.floor(i * step)]);
+  return out;
+}
+
+/**
  * Split one page's text into pieces near `maxLen`.
  *
  * Real PDF text extraction usually strips blank-line paragraph breaks (lines are

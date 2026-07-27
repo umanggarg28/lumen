@@ -117,9 +117,18 @@ export function UploadScreen({ onStart, starting }: Props) {
       )}
 
       {error && (
-        <p className="mt-4 text-center text-sm" style={{ color: 'var(--bad)' }}>
-          {error}
-        </p>
+        <div
+          className="mt-4 flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm animate-fade-up"
+          style={{ background: 'var(--bad-bg)', borderColor: 'var(--bad-border)', color: 'var(--text)' }}
+          role="alert"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" strokeWidth="2.5" strokeLinecap="round" className="shrink-0" aria-hidden>
+            <line x1="12" y1="8" x2="12" y2="13" />
+            <line x1="12" y1="16.5" x2="12" y2="16.5" />
+            <circle cx="12" cy="12" r="9" strokeWidth="2" />
+          </svg>
+          <span>{error}</span>
+        </div>
       )}
     </div>
   );

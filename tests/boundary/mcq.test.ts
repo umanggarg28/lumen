@@ -61,6 +61,27 @@ describe('generateValidMCQ', () => {
     expect(mcq.answerKey.correctChoiceId).toBe('a');
   });
 
+  it('retries a transient generation error (e.g. malformed JSON) instead of failing the request', async () => {
+    const gen = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('LLM returned non-JSON content')) // transient blip
+      .mockResolvedValueOnce(goodRaw);
+    const mcq = await generateValidMCQ(objective, [], gen, 2, alwaysFaithful);
+    expect(gen).toHaveBeenCalledTimes(2);
+    expect(mcq.answerKey.correctChoiceId).toBe('a');
+  });
+
+  it('retries a transient error from the faithfulness judge', async () => {
+    const gen = vi.fn().mockResolvedValue(goodRaw);
+    const verify = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('judge timed out'))
+      .mockResolvedValueOnce({ faithful: true, reason: 'ok' });
+    const mcq = await generateValidMCQ(objective, [], gen, 2, verify);
+    expect(gen).toHaveBeenCalledTimes(2);
+    expect(mcq.answerKey.correctChoiceId).toBe('a');
+  });
+
   it('regenerates when the faithfulness judge rejects a well-formed question', async () => {
     const gen = vi.fn().mockResolvedValue(goodRaw); // always structurally fine
     const verify = vi

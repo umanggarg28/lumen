@@ -1,6 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { chunkPages } from '../../src/lib/chunking';
+import { chunkPages, selectForBudget } from '../../src/lib/chunking';
 import type { Page } from '../../src/lib/pdf';
+import type { Chunk } from '../../src/lib/chunking';
+
+describe('selectForBudget', () => {
+  const make = (n: number, len = 1000): Chunk[] =>
+    Array.from({ length: n }, (_, i) => ({ chunkId: `p${i + 1}-c0`, page: i + 1, text: 'x'.repeat(len) }));
+
+  it('returns everything when the doc already fits the budget', () => {
+    const chunks = make(5, 1000); // 5000 chars
+    expect(selectForBudget(chunks, 24000)).toEqual(chunks);
+  });
+
+  it('trims a large doc to roughly the char budget', () => {
+    const chunks = make(100, 1000); // 100k chars
+    const picked = selectForBudget(chunks, 24000);
+    const total = picked.reduce((n, c) => n + c.text.length, 0);
+    expect(picked.length).toBeLessThan(chunks.length);
+    expect(total).toBeLessThanOrEqual(24000 + 1000); // within one chunk of budget
+    expect(new Set(picked.map((c) => c.chunkId)).size).toBe(picked.length); // no dupes
+  });
+
+  it('samples across the whole document (not just the front), preserving order', () => {
+    const chunks = make(100, 1000);
+    const picked = selectForBudget(chunks, 24000);
+    expect(picked[0].page).toBe(1); // starts near the beginning
+    expect(picked[picked.length - 1].page).toBeGreaterThan(50); // reaches the back half
+    const pages = picked.map((c) => c.page);
+    expect([...pages]).toEqual([...pages].sort((a, b) => a - b)); // still in order
+  });
+});
 
 describe('chunkPages', () => {
   it('tags every chunk with the page it came from', () => {

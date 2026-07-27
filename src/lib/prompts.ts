@@ -1,5 +1,8 @@
-import type { Chunk } from './chunking';
+import { selectForBudget, type Chunk } from './chunking';
 import type { Objective, PublicMCQ, FullMCQ } from '../domain/types';
+
+/** Character budget for the whole-document planning prompt (~6k tokens of source). */
+const PLAN_SOURCE_BUDGET = 24000;
 
 function renderChunks(chunks: Chunk[]): string {
   return chunks.map((c) => `[chunkId=${c.chunkId} page=${c.page}]\n${c.text}`).join('\n\n');
@@ -16,7 +19,8 @@ export function planPrompt(chunks: Chunk[]): { system: string; user: string } {
     '{ "objectives": [ { "title": string, "difficulty": "easy"|"medium"|"hard",',
     '  "sourceRefs": [ { "page": number, "chunkId": string, "excerpt": string } ] } ] }',
   ].join(' ');
-  const user = `SOURCE MATERIAL:\n\n${renderChunks(chunks)}`;
+  // Bound the whole-document input so a large PDF can't overflow the context window.
+  const user = `SOURCE MATERIAL:\n\n${renderChunks(selectForBudget(chunks, PLAN_SOURCE_BUDGET))}`;
   return { system, user };
 }
 

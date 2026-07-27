@@ -99,26 +99,32 @@ export async function generateValidMCQ(
   const { system, user } = mcqPrompt(objective, chunks);
   let lastIssues: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const raw = await structuredImpl(mcqSchema, system, user);
-    const mcq = assembleMCQ(objective, raw);
+    try {
+      const raw = await structuredImpl(mcqSchema, system, user);
+      const mcq = assembleMCQ(objective, raw);
 
-    const { ok, issues } = validateMCQ(mcq); // gate 1: well-formed
-    if (!ok) {
-      recordGate({ kind: 'structural_reject', objectiveId: objective.id, attempt, detail: issues.join('; ') });
-      lastIssues = issues;
-      continue;
+      const { ok, issues } = validateMCQ(mcq); // gate 1: well-formed
+      if (!ok) {
+        recordGate({ kind: 'structural_reject', objectiveId: objective.id, attempt, detail: issues.join('; ') });
+        lastIssues = issues;
+        continue;
+      }
+
+      const faith = await verify(mcq, chunks); // gate 2: actually supported by the source
+      if (!faith.faithful) {
+        // This question passed structural checks — the old pipeline would have served it.
+        recordGate({ kind: 'faithfulness_reject', objectiveId: objective.id, attempt, detail: faith.reason });
+        lastIssues = [`unfaithful: ${faith.reason}`];
+        continue;
+      }
+
+      recordGate({ kind: 'served', objectiveId: objective.id, attempts: attempt });
+      return mcq;
+    } catch (err) {
+      // Transient model/JSON error — treat as a failed attempt and retry rather than 500.
+      recordGate({ kind: 'structural_reject', objectiveId: objective.id, attempt, detail: `error: ${(err as Error).message}` });
+      lastIssues = [(err as Error).message];
     }
-
-    const faith = await verify(mcq, chunks); // gate 2: actually supported by the source
-    if (!faith.faithful) {
-      // This question passed structural checks — the old pipeline would have served it.
-      recordGate({ kind: 'faithfulness_reject', objectiveId: objective.id, attempt, detail: faith.reason });
-      lastIssues = [`unfaithful: ${faith.reason}`];
-      continue;
-    }
-
-    recordGate({ kind: 'served', objectiveId: objective.id, attempts: attempt });
-    return mcq;
   }
   recordGate({ kind: 'failed', objectiveId: objective.id, attempts: maxAttempts });
   throw new Error(`Could not generate a valid MCQ after ${maxAttempts} attempts: ${lastIssues.join('; ')}`);
