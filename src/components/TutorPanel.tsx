@@ -56,7 +56,10 @@ export function TutorPanel({ lessonId }: { lessonId: string }) {
   return (
     <div
       className="card fixed bottom-6 right-6 z-20 flex w-[min(92vw,380px)] flex-col overflow-hidden animate-fade-up"
-      style={{ height: 'min(70vh, 520px)' }}
+      style={{
+        height: 'min(70vh, 520px)',
+        boxShadow: '0 6px 16px rgba(20,22,40,0.12), 0 24px 60px rgba(20,22,40,0.22)',
+      }}
     >
       <div className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">

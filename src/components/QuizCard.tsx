@@ -57,6 +57,12 @@ export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
     return {};
   }
 
+  /** The radio dot's accent — matches the feedback state so it never conflicts (e.g. teal dot on a red card). */
+  function radioAccent(choiceId: string): string {
+    if (showingFeedback && choiceId === submitted) return correct ? 'var(--good)' : 'var(--bad)';
+    return 'var(--primary)';
+  }
+
   // Can submit when there's a selection that hasn't already just been graded.
   const canSubmit = !!selected && !locked && selected !== submitted && !busy;
 
@@ -77,7 +83,8 @@ export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
         })}
       </div>
 
-      <p className="text-sm font-medium text-muted">
+      <p className="flex items-center gap-2 text-sm font-medium text-muted">
+        <span className="h-2 w-2 rounded-full" style={{ background: accentFor(view.currentObjectiveIndex) }} aria-hidden />
         Objective {view.currentObjectiveIndex + 1} of {objectives.length}
         {objectives[view.currentObjectiveIndex] && ` · ${objectives[view.currentObjectiveIndex].title}`}
       </p>
@@ -85,6 +92,7 @@ export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
       <div
         key={`${q.id}-${submitted}-${String(showingFeedback && !correct)}`}
         className={`card mt-3 p-6 sm:p-8 ${showingFeedback && !correct ? 'animate-shake' : 'animate-fade-up'}`}
+        style={{ borderLeft: `4px solid ${accentFor(view.currentObjectiveIndex)}` }}
       >
         <h2 className="text-xl font-semibold leading-snug">{q.question}</h2>
 
@@ -103,9 +111,9 @@ export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
               >
                 <span
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
-                  style={{ borderColor: isSel ? 'var(--primary)' : 'var(--border)' }}
+                  style={{ borderColor: isSel ? radioAccent(c.id) : 'var(--border)' }}
                 >
-                  {isSel && <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--primary)' }} />}
+                  {isSel && <span className="h-2.5 w-2.5 rounded-full" style={{ background: radioAccent(c.id) }} />}
                 </span>
                 <span>{c.text}</span>
               </button>

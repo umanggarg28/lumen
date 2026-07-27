@@ -48,6 +48,15 @@ export function ResultsDashboard({ view, onRestart }: Props) {
             {s?.completed ?? 0}
             <span className="text-lg text-muted"> / {s?.total ?? objectives.length}</span>
           </p>
+          <div className="mt-3 h-2 rounded-full" style={{ background: 'var(--surface-2)' }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: `${s && s.total ? Math.round((s.completed / s.total) * 100) : 0}%`,
+                background: 'var(--accent-4)',
+              }}
+            />
+          </div>
         </div>
       </div>
 
