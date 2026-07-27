@@ -58,6 +58,16 @@ A few deliberate design decisions:
 - **Questions are grounded.** Objectives and questions cite the pages they come from, so the quiz reflects the
   document rather than the model's general knowledge.
 
+### On the stack
+
+LangGraph.js drives the plan and the human-approval interrupt; PostgreSQL is supported for persistence (with a
+zero-setup in-memory fallback). For the UI I went with a custom React front end rather than a generative-UI
+layer, for one deliberate reason: it keeps the answer-privacy and hint guards running deterministically on the
+server. The correct answer and any un-shown hints never enter the client bundle or the agent's UI state — the
+browser only ever receives a question and its choices. That's a safety property I'd rather guarantee in code
+than delegate to a rendering layer. The tradeoff is a bit more UI code, which felt worth it for an app whose
+whole point is trustworthy assessment.
+
 ## Getting started
 
 Requires **Node 22+**. An [OpenRouter](https://openrouter.ai/keys) API key (or any OpenAI-compatible endpoint)
