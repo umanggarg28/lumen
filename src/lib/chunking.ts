@@ -33,7 +33,10 @@ function packParagraphs(text: string, maxLen: number): string[] {
       current = '';
     }
     current = current ? `${current}\n\n${para}` : para;
-    // A single paragraph longer than maxLen becomes its own chunk.
+    // Deliberate tradeoff: we never split inside a paragraph, so a paragraph longer
+    // than maxLen becomes one oversized chunk. Coherent chunks matter more for
+    // grounding than hitting an exact size; sentence-level splitting could be added
+    // later for pathologically long paragraphs.
     if (current.length >= maxLen) {
       out.push(current);
       current = '';
