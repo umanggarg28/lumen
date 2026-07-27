@@ -11,7 +11,7 @@ interface Msg {
 
 const GREETING: Msg = {
   role: 'tutor',
-  text: "Stuck? Ask me to explain the idea, for an analogy, or for a nudge. I won't hand you the answer — that part's yours.",
+  text: "Stuck? I can explain a concept, offer an analogy, or point you in the right direction. I won't give away the answer — working it out is part of the learning.",
 };
 
 export function TutorPanel({ lessonId }: { lessonId: string }) {

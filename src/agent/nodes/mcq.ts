@@ -95,11 +95,11 @@ export async function checkFaithfulness(
 }
 
 /**
- * Generate an MCQ and re-generate until it passes BOTH gates, up to `maxAttempts`:
- *   1. structural validation (`validateMCQ`) — well-formed?
+ * Generate an MCQ and re-generate until it passes both quality gates, up to
+ * `maxAttempts`:
+ *   1. structural validation (`validateMCQ`) — is it well-formed?
  *   2. faithfulness (`verify`) — is the answer actually supported by the source?
- * This is the "self-evaluation framework": the model proposes, code + a judge check,
- * and low-quality or unfaithful output is rejected rather than served.
+ * Low-quality or unfaithful output is rejected and regenerated rather than served.
  */
 export async function generateValidMCQ(
   objective: Objective,

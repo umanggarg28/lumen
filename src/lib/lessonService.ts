@@ -134,8 +134,8 @@ export async function getLessonView(lessonId: string): Promise<LessonView | null
 }
 
 const REFUSAL =
-  "I'd rather not point straight at the answer — that part's yours to reason out. Look back at the " +
-  "section this question comes from and think about what each step actually does, then give it a go.";
+  "I won't point you straight to the answer — working through it is the point. Revisit the section this " +
+  "question draws from, and consider what each option is really claiming.";
 
 /**
  * The tutor: answers "tell me more / hint" questions grounded in the PDF, but the

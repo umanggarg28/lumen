@@ -45,8 +45,8 @@ A few deliberate design decisions:
   choices) and a server-only *answer key* (correct choice, explanation, hints). The client submits its choice
   and the **server grades it in code** — deterministically, not with an LLM. You can't find the answer in any
   network response or in page state.
-- **The model proposes, code decides.** The LLM writes the objectives and questions; plain functions own the
-  control flow, the grading, and the pass/fail of each generated question.
+- **The model generates; application code controls.** The LLM writes the objectives and questions, but plain,
+  tested functions own the control flow, the grading, and the accept/reject decision on each generated question.
 - **Generated questions are self-checked, in two layers.** First a structural validator (the correct choice is
   real, choices are unique, an explanation exists, no hint leaks the answer). Then a second, independent LLM
   pass — a *faithfulness check* — that judges whether the proposed correct answer is actually supported by the

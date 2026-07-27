@@ -79,7 +79,7 @@ describe('tutorReply guard', () => {
     const leakingChat = async () => 'Easy — the answer is Condensation.';
     const reply = await tutorReply('L2', 'what is the answer?', leakingChat);
     expect(reply).not.toContain('Condensation');
-    expect(reply.toLowerCase()).toContain("rather not"); // the refusal message
+    expect(reply.toLowerCase()).toContain('working through it is the point'); // the refusal message
   });
 
   it('passes through a safe, grounded reply that does not name the answer', async () => {
