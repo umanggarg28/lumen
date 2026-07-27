@@ -25,6 +25,28 @@ const goodRaw = {
 // A verifier stub that always approves — used where we're not testing faithfulness itself.
 const alwaysFaithful = async () => ({ faithful: true, reason: 'ok' });
 
+describe('assembleMCQ', () => {
+  it('keeps all choices and a valid correct answer regardless of order (choices may be shuffled)', () => {
+    const mcq = assembleMCQ(objective, goodRaw);
+    // same set of choice texts, correct answer still points at a real choice
+    expect(new Set(mcq.choices.map((c) => c.text))).toEqual(new Set(goodRaw.choices.map((c) => c.text)));
+    expect(mcq.choices.some((c) => c.id === mcq.answerKey.correctChoiceId)).toBe(true);
+    const correct = mcq.choices.find((c) => c.id === mcq.answerKey.correctChoiceId);
+    expect(correct?.text).toBe('Sunlight'); // the correct *text* is preserved through shuffling
+  });
+
+  it('does not always leave the first-listed option in position 0 (position bias removed)', () => {
+    // With a correct-answer-first raw input, shuffling should sometimes move it.
+    const firstCorrect = { ...goodRaw, correctChoiceId: 'a' };
+    const positions = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      const mcq = assembleMCQ(objective, firstCorrect);
+      positions.add(mcq.choices.findIndex((c) => c.text === 'Sunlight'));
+    }
+    expect(positions.size).toBeGreaterThan(1); // the correct answer lands in varied positions
+  });
+});
+
 describe('validateMCQ (structural)', () => {
   it('accepts a clean MCQ', () => {
     expect(validateMCQ(assembleMCQ(objective, goodRaw)).ok).toBe(true);

@@ -131,3 +131,19 @@ src/
 tests/         domain + boundary + lib tests
 samples/       example PDFs (single- and multi-page)
 ```
+
+## Known limitations & next steps
+
+Scoped deliberately for a focused build; here's what I'd harden next:
+
+- **Prompt injection via the PDF.** The document's text flows into the planning, question, and tutor prompts.
+  A maliciously crafted PDF could try to steer the model (e.g. instruct the tutor to reveal an answer). The
+  deterministic guards (server-side grading, the answer-leak check on hints/tutor replies) contain the worst
+  case, but a production version would add input sanitization and stronger output classification.
+- **The answer-leak guard is a substring check.** `isHintSafe` catches a reply that contains the correct
+  choice's text. It's a backstop, not a semantic one — a paraphrased leak could slip through, and it can be
+  over-eager. Embedding similarity or a small classifier would be the production upgrade.
+- **In-memory store is per-process.** The zero-setup fallback lives in module memory, so on a serverless/
+  multi-instance deployment it won't share state across cold starts — use the PostgreSQL path there.
+- **Faithfulness judge is itself an LLM.** It lowers the odds of a confident-but-wrong question; it doesn't
+  eliminate them. High-stakes use would add self-consistency and human review.

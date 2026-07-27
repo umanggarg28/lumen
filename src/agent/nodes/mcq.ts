@@ -18,13 +18,25 @@ const mcqSchema = z.object({
 type RawMCQ = z.infer<typeof mcqSchema>;
 
 /** Turn the raw LLM output into a FullMCQ, minting the server-side id + answer key. */
+/** Fisher-Yates shuffle on a copy — never mutates the input. */
+function shuffled<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function assembleMCQ(objective: Objective, raw: RawMCQ): FullMCQ {
   const mcqId = randomUUID();
   return {
     id: mcqId,
     objectiveId: objective.id,
     question: raw.question,
-    choices: raw.choices,
+    // Shuffle display order so the correct answer isn't biased toward a fixed slot.
+    // Grading is by choice id, so reordering is safe; the answer key is unaffected.
+    choices: shuffled(raw.choices),
     difficulty: objective.difficulty,
     answerKey: {
       mcqId,
