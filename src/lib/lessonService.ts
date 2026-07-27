@@ -142,7 +142,11 @@ const REFUSAL =
  * reply is checked against the answer key before it's returned. If the model ever
  * lets the correct answer slip through, we refuse rather than reveal.
  */
-export async function tutorReply(lessonId: string, message: string): Promise<string> {
+export async function tutorReply(
+  lessonId: string,
+  message: string,
+  chatImpl = chat,
+): Promise<string> {
   const store = await ready();
   const state = await store.getLesson(lessonId);
   if (!state) throw new Error('lesson not found');
@@ -166,7 +170,7 @@ export async function tutorReply(lessonId: string, message: string): Promise<str
   }
 
   const { system, user } = tutorPrompt(objective, relevant, state.currentQuestion, message);
-  const reply = await chat(system, user);
+  const reply = await chatImpl(system, user);
 
   // Deterministic backstop: if the answer leaked into the reply, refuse.
   if (correctText && !isHintSafe(reply, correctText)) return REFUSAL;
