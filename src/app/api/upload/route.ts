@@ -14,7 +14,18 @@ export async function POST(req: NextRequest) {
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const pages = await extractPages(bytes);
+
+  let pages;
+  try {
+    pages = await extractPages(bytes);
+  } catch {
+    // Corrupt file, wrong type renamed to .pdf, or an unreadable PDF structure.
+    return NextResponse.json(
+      { error: "That file couldn't be read as a PDF. Please upload a valid PDF." },
+      { status: 422 },
+    );
+  }
+
   const extraction = summarizeExtraction(pages);
 
   if (extraction.pageCount === 0 || extraction.lowTextPages.length === extraction.pageCount) {
