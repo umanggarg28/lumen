@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { LessonView } from '../domain/view';
 import { accentFor } from '../lib/api';
 import { Spinner } from './Spinner';
@@ -20,11 +20,8 @@ export function QuizCard({ view, onAnswer, onContinue, busy }: Props) {
   const correct = view.feedback?.status === 'correct';
   const locked = showingFeedback && correct; // only lock the question once it's answered right
 
-  // Fresh question -> clear everything.
-  useEffect(() => {
-    setSelected(null);
-    setSubmitted(null);
-  }, [q?.id]);
+  // Local state resets per question via a `key` on this component (see page.tsx),
+  // so a new question remounts with a clean slate.
 
   const objectives = view.plan?.objectives ?? [];
 

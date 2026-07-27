@@ -3,7 +3,8 @@
  *
  * The point of measurement: the faithfulness gate runs AFTER structural validation
  * passes, so every `faithfulness_reject` is a question the structural-only pipeline
- * WOULD have served. Counting them measures the gate's marginal value directly.
+ * WOULD have served. Counting them measures the gate's marginal value directly, and
+ * each catch is kept so it can be inspected.
  *
  * Caveat (honest): this counts how often the judge *fires*, not whether the judge
  * is *right*. Proving quality improvement needs ground truth (human / stronger model).
@@ -11,9 +12,17 @@
 
 export type GateEvent =
   | { kind: 'structural_reject'; objectiveId: string; attempt: number; detail: string }
-  | { kind: 'faithfulness_reject'; objectiveId: string; attempt: number; detail: string }
+  | { kind: 'faithfulness_reject'; objectiveId: string; attempt: number; detail: string; question: string }
   | { kind: 'served'; objectiveId: string; attempts: number }
   | { kind: 'failed'; objectiveId: string; attempts: number };
+
+/** A question the faithfulness judge rejected — kept so the catch can be shown. */
+export interface Catch {
+  objectiveId: string;
+  question: string;
+  reason: string;
+  at: string;
+}
 
 interface State {
   served: number;
@@ -21,7 +30,7 @@ interface State {
   faithfulnessRejects: number;
   failures: number;
   attemptsTotal: number;
-  recent: (GateEvent & { at: string })[];
+  catches: Catch[];
 }
 
 const state: State = {
@@ -30,7 +39,7 @@ const state: State = {
   faithfulnessRejects: 0,
   failures: 0,
   attemptsTotal: 0,
-  recent: [],
+  catches: [],
 };
 
 export function recordGate(event: GateEvent): void {
@@ -40,6 +49,13 @@ export function recordGate(event: GateEvent): void {
       break;
     case 'faithfulness_reject':
       state.faithfulnessRejects++;
+      state.catches.unshift({
+        objectiveId: event.objectiveId,
+        question: event.question,
+        reason: event.detail,
+        at: new Date().toISOString(),
+      });
+      if (state.catches.length > 20) state.catches.pop();
       break;
     case 'served':
       state.served++;
@@ -49,8 +65,6 @@ export function recordGate(event: GateEvent): void {
       state.failures++;
       break;
   }
-  state.recent.unshift({ ...event, at: new Date().toISOString() });
-  if (state.recent.length > 50) state.recent.pop();
 
   // Structured server log for live visibility (quiet during tests).
   if (process.env.NODE_ENV !== 'test') console.log('[gen]', JSON.stringify(event));
@@ -58,7 +72,11 @@ export function recordGate(event: GateEvent): void {
 
 export function metricsSnapshot() {
   return {
-    ...state,
+    served: state.served,
+    structuralRejects: state.structuralRejects,
+    faithfulnessRejects: state.faithfulnessRejects,
+    failures: state.failures,
+    catches: state.catches,
     // Of the questions we served, how many extra "catches" did the faithfulness gate make?
     faithfulnessRejectsPerServed: state.served
       ? +(state.faithfulnessRejects / state.served).toFixed(3)
@@ -73,5 +91,5 @@ export function resetMetrics(): void {
   state.faithfulnessRejects = 0;
   state.failures = 0;
   state.attemptsTotal = 0;
-  state.recent = [];
+  state.catches = [];
 }

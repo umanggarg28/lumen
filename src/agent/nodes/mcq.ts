@@ -125,7 +125,13 @@ export async function generateValidMCQ(
       const faith = await verify(mcq, chunks); // gate 2: actually supported by the source
       if (!faith.faithful) {
         // This question passed structural checks — the old pipeline would have served it.
-        recordGate({ kind: 'faithfulness_reject', objectiveId: objective.id, attempt, detail: faith.reason });
+        recordGate({
+          kind: 'faithfulness_reject',
+          objectiveId: objective.id,
+          attempt,
+          detail: faith.reason,
+          question: mcq.question,
+        });
         lastIssues = [`unfaithful: ${faith.reason}`];
         continue;
       }

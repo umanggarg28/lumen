@@ -24,10 +24,19 @@ function MoonIcon() {
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
+  // Read the active theme once on mount (client-only). Deferred so the mount render
+  // isn't interrupted by a synchronous state update.
   useEffect(() => {
+    let active = true;
     const saved = localStorage.getItem('lumen.theme') as Theme | null;
-    if (saved) setTheme(saved);
-    else setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const resolved: Theme =
+      saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    Promise.resolve().then(() => {
+      if (active) setTheme(resolved);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   function toggle() {

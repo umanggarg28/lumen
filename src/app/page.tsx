@@ -23,21 +23,33 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [resuming, setResuming] = useState(true);
 
-  // Resume an in-progress lesson after a refresh.
+  // Resume an in-progress lesson after a refresh. State is updated from async
+  // callbacks, so the mount render isn't interrupted by a synchronous update.
   useEffect(() => {
+    let active = true;
     const id = localStorage.getItem(KEY);
     if (!id) {
-      setResuming(false);
-      return;
+      Promise.resolve().then(() => {
+        if (active) setResuming(false);
+      });
+      return () => {
+        active = false;
+      };
     }
     api
       .resumeLesson(id)
       .then((v) => {
+        if (!active) return;
         if (v) setView(v);
         else localStorage.removeItem(KEY);
       })
       .catch(() => localStorage.removeItem(KEY))
-      .finally(() => setResuming(false));
+      .finally(() => {
+        if (active) setResuming(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const run = useCallback(async (fn: () => Promise<LessonView>) => {
@@ -85,6 +97,7 @@ export default function Home() {
     }
     return (
       <QuizCard
+        key={view.currentQuestion?.id ?? view.currentObjectiveIndex}
         view={view}
         busy={busy}
         onAnswer={(choice) => run(() => api.answer(view.lessonId, choice))}
