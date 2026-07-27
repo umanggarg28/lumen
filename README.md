@@ -52,7 +52,10 @@ A few deliberate design decisions:
   pass — a *faithfulness check* — that judges whether the proposed correct answer is actually supported by the
   cited source, and that no other choice is equally defensible. A question is regenerated if either gate fails.
   (The judge is itself an LLM, so this lowers the risk of a confident-but-wrong answer rather than eliminating
-  it; higher-stakes use would add human review.)
+  it; higher-stakes use would add human review.) These checks are observable at **`/observability`**, which shows
+  how many questions each gate caught and the specific questions the faithfulness check rejected — because that
+  check runs only after the structural one passes, every catch there is a question the naive pipeline would have
+  served.
 - **The tutor is guarded.** Its replies are grounded in the PDF and checked against the answer key before they
   are sent — if the answer ever slips through, Lumen refuses instead of revealing it.
 - **Questions are grounded.** Objectives and questions cite the pages they come from, so the quiz reflects the
