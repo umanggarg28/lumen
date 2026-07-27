@@ -69,8 +69,9 @@ cp .env.example .env      # then add your OPENROUTER_API_KEY
 npm run dev               # http://localhost:3000
 ```
 
-Try it with the included documents in [`samples/`](samples/) — a simple one (`water-cycle.pdf`) and denser
-ones (`neural-networks.pdf`, `french-revolution.pdf`, `photosynthesis.pdf`).
+Try it with the included documents in [`samples/`](samples/) — short single-page ones (`water-cycle.pdf`,
+`photosynthesis.pdf`, `neural-networks.pdf`, `french-revolution.pdf`) and multi-page ones (`cell-biology.pdf`,
+`money-and-inflation.pdf`). Or drop in any text-based PDF of your own.
 
 ### Persistence (optional)
 
@@ -112,10 +113,11 @@ fast and deterministic.
 ```
 src/
   domain/      pure logic: types, lessonMachine, grading, mcq (answer privacy), hintGuard, summary
-  lib/         adapters: pdf, chunking, llm, prompts, db (postgres + in-memory), lessonService, api
-  agent/       LangGraph graph + nodes (plan, mcq generation + self-eval validator)
-  app/         Next.js routes + API; page.tsx orchestrates the flow
-  components/   UploadScreen, PlanReview, QuizCard, ResultsDashboard, TutorPanel
-tests/         domain + boundary tests
-samples/       example PDFs
+  lib/         adapters: pdf, chunking, llm, prompts, db (postgres + in-memory),
+               lessonService, metrics, api (client)
+  agent/       LangGraph graph + nodes (plan; mcq generation + structural & faithfulness self-eval)
+  app/         Next.js routes + API (api/lesson, api/upload, api/metrics); page.tsx orchestrates the flow
+  components/   UploadScreen, PlanReview, QuizCard, ResultsDashboard, TutorPanel, ThemeToggle, Spinner
+tests/         domain + boundary + lib tests
+samples/       example PDFs (single- and multi-page)
 ```
